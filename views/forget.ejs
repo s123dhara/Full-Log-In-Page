@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crud Operation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+    <div class="w-full h-screen bg-zinc-900 flex items-center justify-center p-10">
+        <div class="w-full max-w-md bg-zinc-900 p-8 rounded-lg shadow-xl">
+            <h1 class="text-4xl tracking-tighter mb-6 text-white text-center">Recover password</h1>
+            <% if (error.length > 0) { %>
+                <div class="error-message" style="color: red; text-align: center;">
+                    <p><%= error %></p>
+                </div>
+            <% } %>
+            <form action="/forget" method="post" class="flex flex-col items-center">
+                <input class="w-full px-5 py-3 mb-4 text-white border-2 border-zinc-800 rounded-lg bg-transparent outline-none" type="email" placeholder="Enter Your email" name="email">
+                <input class="px-5 py-2 bg-yellow-500 rounded-lg mt-3 hover:text-blue-500 cursor-pointer" type="submit" value="Submit">
+            </form>
+        </div>
+    </div>
+</body>
+</html>

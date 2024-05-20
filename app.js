@@ -103,6 +103,44 @@ app.post("/login", async (req, res) => {
   }
 });
 
+app.get('/forget', async (req, res)=>{
+    const error = req.flash("error");
+    res.render('forget' , {error})
+})
+
+app.post('/forget', async (req, res) => {
+    let user = await userModel.findOne({ email: req.body.email })
+    if (!user) {
+        req.flash("error", "User Does not Exist");
+        return res.redirect('/forget');
+    }
+    // Redirect to the recover route with the user ID in the URL
+    res.redirect(`/recover/${user._id.toString()}`);
+});
+
+
+app.get('/recover/:userId', async (req, res) => {
+    const userId = req.params.userId;
+    let user = await userModel.findOne({_id : userId})
+    // console.log(user)
+    // Pass the userId to the recover view
+    res.render('recover', {user});
+});
+
+app.post('/updatepassword/:id', async (req, res) => {
+
+    let hashedPassword = await bcrypt.hash(req.body.password, 10)
+
+    let user = await userModel.findOneAndUpdate({_id : req.params.id},{
+        password : hashedPassword
+    })
+
+    res.redirect('/login')
+
+
+});
+
+
 
 
 app.get('/logout', async (req, res)=>{
@@ -112,11 +150,15 @@ app.get('/logout', async (req, res)=>{
 
 app.get('/profile', isUserLoggedIn, async (req, res)=>{
 
+    try{
     let user = await userModel.findOne({email : req.user.email}).populate('posts')
     // let post = await postModel.findOne({user : req.user.userid})
     console.log(user)
-
     res.render('profile', {user})
+    }
+    catch{
+        res.redirect('/login')
+    }
 })
 
 
@@ -175,6 +217,16 @@ app.post('/update/:id', isUserLoggedIn ,async (req, res)=>{
 app.get('/delete/:id', isUserLoggedIn, async (req, res)=>{
 
     let post = await postModel.findOneAndDelete({_id : req.params.id})
+    let user = await userModel.findOne({_id : req.user.userid})
+
+    let postidindex  = user.posts.indexOf(req.params.id)
+    // console.log("post index ",postidindex)
+
+    let temp = user.posts.splice(postidindex, 1)
+    // console.log('temp------------------------> ',temp)
+
+    await user.save()
+
     res.redirect('/profile')
 
 })
@@ -184,7 +236,7 @@ app.get('/read', isAdmingLoggedIn, async (req, res)=>{
 
     let users = await userModel.find()
 
-    console.log(users)
+    // console.log(users)
     res.render('read', {users} )
 })
 
@@ -198,11 +250,14 @@ app.get('/edituser/:id', async(req, res)=>{
 })
 app.get('/deleteuser/:id', async(req, res)=>{
 
-    let user = await userModel.findOneAndDelete({_id : req.params.id})
-    user.posts.forEach( async(id) => {
-        await userModel.findOneAndDelete({ _id : id})
-    })
-    console.log("user details fetch "+user)
+    let user = await userModel.findOne({_id : req.params.id}).populate("posts")
+    
+    user.posts.forEach( async( postid ) => {
+        let post = await postModel.findOneAndDelete({_id : postid})
+    });
+
+    await user.deleteOne()
+    // console.log("user details fetch "+user)
 
     res.redirect('/read')
 })
@@ -220,9 +275,6 @@ app.post('/updateuser/:id' , async (req, res)=>{
     })
 
     res.redirect('/read')
-
-    
-
 })
 
 
@@ -230,9 +282,9 @@ app.post('/updateuser/:id' , async (req, res)=>{
 
 //admin access
 app.get('/adminlogin', async (req , res)=>{
-    const error = req.flash("error");
-    console.log(error);
-    res.render('admin', {error})
+        const error = req.flash("error");
+        console.log(error);
+        res.render('admin', {error} )
 })
 
 app.post('/adminlogin', async (req , res)=>{
