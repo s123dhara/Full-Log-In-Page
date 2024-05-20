@@ -101,7 +101,8 @@ app.get('/logout', async (req, res)=>{
 
 app.get('/profile', isUserLoggedIn, async (req, res)=>{
 
-    let user = await userModel.findOne({email : req.user.email}).populate("posts")
+    let user = await userModel.findOne({email : req.user.email}).populate('posts')
+    // let post = await postModel.findOne({user : req.user.userid})
     console.log(user)
 
     res.render('profile', {user})
@@ -127,28 +128,24 @@ app.post('/post/', isUserLoggedIn ,async (req, res)=>{
 })
 
 app.get('/like/:id', isUserLoggedIn, async (req, res)=>{
-    try {
-        let post = await postModel.findOne({ _id: req.params.id }).populate("user");
-        
-        // if (!post) {
-        //     res.redirect('/profile');
-        // }
 
-        const userId = req.user.userid;
-        const likeIndex = post.likes.indexOf(userId);
-
-        if (likeIndex === -1) {
-            post.likes.push(userId);
-        } else {
-            post.likes.splice(likeIndex, 1);
-        }
-
-        await post.save();
-        res.redirect('/profile');
-    } catch (error) {
-        console.error(error);
-        res.redirect('/profile');
+    console.log("req.body : ",req.user)
+    let post = await postModel.findOne({ _id: req.params.id })
+    
+    
+    let idx = post.likes.indexOf(req.user.userid)
+    if( idx === -1){
+        post.likes.push(req.user.userid);
     }
+    else{
+        post.likes.splice(idx, 1)
+    }
+    await post.save()
+    res.redirect('/profile')
+    // let result = post.likes.indexOf(req.user.userid)
+    // console.log(result)
+
+
 })
 app.get('/edit/:id', isUserLoggedIn, async (req, res) => {
     let post = await postModel.findOne({ _id: req.params.id });
@@ -191,6 +188,9 @@ app.get('/edituser/:id', async(req, res)=>{
 app.get('/deleteuser/:id', async(req, res)=>{
 
     let user = await userModel.findOneAndDelete({_id : req.params.id})
+    user.posts.forEach( async(id) => {
+        await userModel.findOneAndDelete({ _id : id})
+    })
     console.log("user details fetch "+user)
 
     res.redirect('/read')
