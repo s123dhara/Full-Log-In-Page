@@ -151,17 +151,25 @@ app.get('/like/:id', isUserLoggedIn, async (req, res)=>{
     }
 })
 app.get('/edit/:id', isUserLoggedIn, async (req, res) => {
-    // let post = await postModel.findOne({ _id: req.params.id }).populate("user");
+    let post = await postModel.findOne({ _id: req.params.id });
     // let user = await userModel.findOne({email : req.user.email})
-    res.render('editpost')
+    res.render('editpost', {post})
 })
 
-// app.post('/update/:id', isUserLoggedIn, async (req, res)=>{
+app.post('/update/:id', isUserLoggedIn ,async (req, res)=>{
+    let {content} = req.body;
+    let post = await postModel.findOneAndUpdate({ _id: req.params.id },{
+        content : content
+    })
+    res.redirect('/profile')
+})
 
-//     let post = await postModel.findOneAndUpdate({_id : req.params.id}, {content : req.body.content})
-//     res.redirect('/profile')
+app.get('/delete/:id', isUserLoggedIn, async (req, res)=>{
 
-// })
+    let post = await postModel.findOneAndDelete({_id : req.params.id})
+    res.redirect('/profile')
+
+})
 
 //admin read
 app.get('/read', isAdmingLoggedIn, async (req, res)=>{
