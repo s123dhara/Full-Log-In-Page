@@ -14,8 +14,13 @@
     </header>
     <header class="absolute top-0 right-0 p-4">
         <nav class="flex gap-5">
-            <a href="/login" class="px-4 py-2 bg-blue-500 rounded-lg ml-3 mt-3 text-white hover:text-blue-800" >Login</a>
-            <a href="/signup" class="px-4 py-2 bg-blue-500 rounded-lg ml-3 mt-3 text-white hover:text-blue-800">Signup</a>
+            <% if (isLoggedIn) { %>
+                <a href="/profile" class="px-4 py-2 bg-blue-500 rounded-lg ml-3 mt-3 text-white hover:text-blue-800">Profile</a>
+                <a href="/logout" class="px-4 py-2 bg-blue-500 rounded-lg ml-3 mt-3 text-white hover:text-blue-800">Logout</a>
+            <% } else { %>
+                <a href="/login" class="px-4 py-2 bg-blue-500 rounded-lg ml-3 mt-3 text-white hover:text-blue-800">Login</a>
+                <a href="/signup" class="px-4 py-2 bg-blue-500 rounded-lg ml-3 mt-3 text-white hover:text-blue-800">Signup</a>
+            <% } %>
         </nav>
     </header>
     <div class="bg-white p-10 rounded-lg shadow-lg text-center">

@@ -33,13 +33,24 @@ app.use(cookieParser())
 
 // Routes
 app.get("/", (req, res) => {
-  res.render("home");
+    let isLoggedIn = false;
+    if (req.cookies.token) {
+        try {
+            let data = jwt.verify(req.cookies.token, "secretkey");
+            isLoggedIn = true;
+        } catch (err) {
+            // Invalid token, consider user as not logged in
+        }
+    }
+    res.render("home", { isLoggedIn });
 });
 
 app.get("/login", (req, res) => {
-  const error = req.flash("error");
-  console.log(error);
-  res.render("login", { error });
+    
+    const error = req.flash("error");
+    console.log(error);
+    res.render("login", { error });
+    
 });
 
 app.get("/signup", (req, res) => {
@@ -71,7 +82,7 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-app.post("/login", async (req, res) => {
+app.post("/login", async (req, res) => {  
   let { email, password } = req.body;
 
   let checkUser = await userModel.findOne({ email: email });
@@ -234,7 +245,7 @@ app.post('/adminlogin', async (req , res)=>{
     } else {
     let result = await bcrypt.compare(req.body.password, admin.password);
     if (result) {
-        let token = jwt.sign({email : req.body.email, adminid : admin._id}, "secretkey")
+        let token = jwt.sign({email : req.body.email, adminid : admin._id}, "secretkey1")
         res.cookie("token", token)
             // res.send("You can log in")
         res.redirect('/read')
@@ -257,7 +268,7 @@ function isAdmingLoggedIn(req, res, next){
         res.redirect("/adminlogin");
     } else {
         try {
-            let data = jwt.verify(req.cookies.token, "secretkey");
+            let data = jwt.verify(req.cookies.token, "secretkey1");
             console.log("data ",data)
             req.user = data; // Correctly assign the verified data to req.user
             // res.redirect('/profile')
