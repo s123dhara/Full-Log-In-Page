@@ -7,7 +7,7 @@ mongoose.connect("mongodb://127.0.0.1:27017/userDatabase")
     console.log("no connection ")
 })
 
-const postSchema = mongoose.Schema({
+const PostSchema = mongoose.Schema({
     user : {
         type : mongoose.Schema.Types.ObjectId,
         ref : "conn"
@@ -26,4 +26,4 @@ const postSchema = mongoose.Schema({
 })
 
 
-module.exports = mongoose.model('post', postSchema)
+module.exports = mongoose.model('post', PostSchema)

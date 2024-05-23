@@ -4,16 +4,19 @@ const PORT = process.env.PORT || 3000;
 const path = require("path");
 
 // Extra packages
+const multer = require('multer');
 const bcrypt = require("bcrypt");
 const session = require("express-session");
 const flash = require("connect-flash");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
+const crypto = require('crypto')
 
 // Database connectivity
 const userModel = require("./db/conn");
 const adminModel = require("./db/admin");
 const postModel = require("./db/post");
+const uploadModel = require('./db/upload')
 
 // Middleware setup
 app.set("view engine", "ejs");
@@ -29,6 +32,22 @@ app.use(
 );
 app.use(flash());
 app.use(cookieParser());
+
+
+// form data upload with image
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './public/images/uploads')
+  },
+  filename: function (req, file, cb) {
+    crypto.randomBytes(12,(err, bytes)=>{
+      const fn = bytes.toString("hex") + path.extname(file.originalname)
+      cb(null, fn)
+    })
+  }
+})
+const upload = multer({storage: storage})
+
 
 // Routes
 app.get("/", (req, res) => {
@@ -72,10 +91,40 @@ app.post("/signup", async (req, res) => {
       password: hashPassword,
     });
     console.log(user);
-    res.redirect("/");
+    let userId = user._id;
+    res.redirect(`/upload/${userId}`)
   } else {
     req.flash("error", "User Already Exists");
     res.redirect("/signup");
+  }
+});
+
+app.get('/upload/:id', async (req, res)=>{
+  
+  // let user = await userModel.findOne({_id : req.body._id})
+  // console.log(user)
+  console.log(req.params.id)
+  let  userId = req.params.id
+  res.render('upload' ,{userId} )
+})
+
+app.post('/upload/:id', upload.fields([{ name: 'profile' }, { name : 'signature' }]), async (req, res) => {
+  try {
+    let uploadImages = await uploadModel.create({
+      user: req.params.id,
+      profile: req.files.profile[0].filename,
+      signature: req.files.signature[0].filename
+    });
+
+    // console.log(uploadImages)
+    let user = await userModel.findOne({_id : req.params.id})
+    user.upload = uploadImages._id
+    await user.save()
+    // res.send(user)
+    res.redirect('/login');
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
   }
 });
 
@@ -221,11 +270,16 @@ app.get("/delete/:id", isUserLoggedIn, async (req, res) => {
 });
 
 //admin read
-app.get("/read", isAdmingLoggedIn, async (req, res) => {
-  let users = await userModel.find();
 
-  // console.log(users)
-  res.render("read", { users });
+app.get("/read", async (req, res) => {
+  try {
+    // First, find the users
+    let users = await userModel.find().populate("upload");
+    res.render("read", { users });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
+  }
 });
 
 app.get("/edituser/:id", async (req, res) => {

@@ -7,11 +7,13 @@ mongoose.connect("mongodb://127.0.0.1:27017/userDatabase")
     console.log("no connection")
 })
 
-const userSchema = mongoose.Schema({
+const UserSchema = mongoose.Schema({
    username : String, 
    email : String, 
    password : String,
-   posts : [ {type : mongoose.Schema.Types.ObjectId, ref : "post"}]
+   posts : [ {type : mongoose.Schema.Types.ObjectId, ref : "post"}],
+   upload : {type : mongoose.Schema.Types.ObjectId, ref : "upload"}
+
 })
 
-module.exports = mongoose.model('Users', userSchema)
+module.exports = mongoose.model('users', UserSchema)

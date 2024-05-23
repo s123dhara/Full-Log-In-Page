@@ -25,7 +25,8 @@
             <% users.forEach(function(user) { %>
                 <div class="user w-72 p-4 bg-zinc-800 rounded-lg ">
                     <div class="w-full h-72 rounded-lg bg-zinc-500 overflow-hidden">
-                        <img class="w-full h-full object-cover object-top" src="<%= user.image %>" alt="Not Available">
+                        <img class="w-full h-full object-cover object-top" src="/images/uploads/<%= user.upload.profile %>" alt="Not Available">
+                        <!-- <img class="w-full h-full object-cover object-top" src="https://images.pexels.com/photos/771742/pexels-photo-771742.jpeg" alt="Not Available"> -->
                     </div>
                     <h3 class="text-xl tracking-tighter mt-3"><%= user.email %></h3>
                     <h5 class="text-zinc-500 truncate"><%= user.password %></h5>
