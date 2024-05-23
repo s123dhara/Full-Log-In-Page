@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const path = require("path");
+const fs = require('fs')
 
 // Extra packages
 const multer = require('multer');
@@ -23,6 +24,7 @@ app.set("view engine", "ejs");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
+global.uploadPath = path.join(__dirname, 'public', 'images', 'uploads');
 app.use(
   session({
     secret: "your_secret_key", // Replace with a strong secret key
@@ -37,16 +39,21 @@ app.use(cookieParser());
 // form data upload with image
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, './public/images/uploads')
+    const userId = req.params.id;
+    const userUploadPath = path.join(global.uploadPath, userId);
+    fs.mkdirSync(userUploadPath, { recursive: true });
+    cb(null, userUploadPath);
   },
   filename: function (req, file, cb) {
-    crypto.randomBytes(12,(err, bytes)=>{
-      const fn = bytes.toString("hex") + path.extname(file.originalname)
-      cb(null, fn)
-    })
+    crypto.randomBytes(12, (err, bytes) => {
+      if (err) return cb(err);
+      const fn = bytes.toString("hex") + path.extname(file.originalname);
+      cb(null, fn);
+    });
   }
-})
-const upload = multer({storage: storage})
+});
+
+const upload = multer({ storage: storage });
 
 
 // Routes
@@ -110,6 +117,7 @@ app.get('/upload/:id', async (req, res)=>{
 
 app.post('/upload/:id', upload.fields([{ name: 'profile' }, { name : 'signature' }]), async (req, res) => {
   try {
+    // console.log(req.files)
     let uploadImages = await uploadModel.create({
       user: req.params.id,
       profile: req.files.profile[0].filename,
@@ -271,7 +279,7 @@ app.get("/delete/:id", isUserLoggedIn, async (req, res) => {
 
 //admin read
 
-app.get("/read", async (req, res) => {
+app.get("/read", isAdmingLoggedIn ,async (req, res) => {
   try {
     // First, find the users
     let users = await userModel.find().populate("upload");
@@ -282,18 +290,20 @@ app.get("/read", async (req, res) => {
   }
 });
 
-app.get("/edituser/:id", async (req, res) => {
+app.get("/edituser/:id",async (req, res) => {
   let user = await userModel.findOne({ _id: req.params.id });
   console.log("user details fetch " + user);
 
   res.render("edituser", { user });
 });
 app.get("/deleteuser/:id", async (req, res) => {
-  let user = await userModel.findOne({ _id: req.params.id }).populate("posts");
+  let user = await userModel.findOne({ _id: req.params.id }).populate("posts").populate("upload");
 
   user.posts.forEach(async (postid) => {
     let post = await postModel.findOneAndDelete({ _id: postid });
   });
+
+  let uplaodIamges = await uploadModel.findOneAndDelete({_id : user.upload})
 
   await user.deleteOne();
   // console.log("user details fetch "+user)
@@ -301,21 +311,62 @@ app.get("/deleteuser/:id", async (req, res) => {
   res.redirect("/read");
 });
 
-app.post("/updateuser/:id", async (req, res) => {
+app.post("/updateuser/:id", upload.fields([{ name: 'profile' }, { name: 'signature' }]), async (req, res) => {
   let { email, password } = req.body;
 
-  let saltrounds = 10;
-  let hashPassword = await bcrypt.hash(password, saltrounds);
+  console.log(req.files)
+  let hashPassword = await bcrypt.hash(password, 10)
 
-  let user = await userModel.findOneAndUpdate(
-    { _id: req.params.id },
-    {
-      email: email,
-      password: hashPassword,
+  try {
+    // Update user details
+    let user = await userModel.findOneAndUpdate(
+      { _id: req.params.id },
+      {
+        email: email,
+        password: hashPassword, // Assuming password is already hashed, if not, hash it before saving
+      },
+      { new: true }
+    );
+    // req.files.forEach((file) => {
+    //   const filepath = path.join(global.uploadPath, req.params.id, );
+  
+    //   try {
+    //     // Delete the file synchronously
+    //     fs.unlinkSync(filepath);
+    //     console.log('File deleted successfully:', filepath);
+    //   } catch (err) {
+    //     console.error('Error deleting the file:', err);
+    //   }
+    // });
+
+    let updateUploadImages = await uploadModel.findOne({_id : user.upload})
+    const filepath = path.join(global.uploadPath, req.params.id, updateUploadImages.profile);
+    try {
+          // Delete the file synchronously
+          fs.unlinkSync(filepath);
+          console.log('File deleted successfully:', filepath);
+        } catch (err) {
+          console.error('Error deleting the file:', err);
+        }
+    const filepath2 = path.join(global.uploadPath, req.params.id, updateUploadImages.signature);
+    try {
+      // Delete the file synchronously
+      fs.unlinkSync(filepath2);
+      console.log('File deleted successfully:', filepath2);
+    } catch (err) {
+      console.error('Error deleting the file:', err);
     }
-  );
 
-  res.redirect("/read");
+    updateUploadImages.profile = req.files.profile[0].filename
+    updateUploadImages.signature = req.files.signature[0].filename
+    await updateUploadImages.save()
+
+    // Update upload details if files are uploaded
+    res.redirect("/read");
+  } catch (error) {
+    console.error("Error updating user and uploads:", error);
+    res.status(500).send("An error occurred while updating the user.");
+  }
 });
 
 //admin access
@@ -325,7 +376,7 @@ app.get("/adminlogin", async (req, res) => {
   res.render("admin", { error });
 });
 
-app.post("/adminlogin", async (req, res) => {
+app.post("/adminlogin",async (req, res) => {
   let admin = await adminModel.findOne({ email: req.body.email });
 
   if (!admin) {
