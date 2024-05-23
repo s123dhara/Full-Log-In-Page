@@ -303,8 +303,16 @@ app.get("/deleteuser/:id", async (req, res) => {
     let post = await postModel.findOneAndDelete({ _id: postid });
   });
 
-  let uplaodIamges = await uploadModel.findOneAndDelete({_id : user.upload})
 
+  let uplaodIamges = await uploadModel.findOne({_id : user.upload})
+  const filepath = path.join(global.uploadPath, req.params.id)
+  fs.rm(filepath, { recursive: true, force: true }, (err) => {
+    if (err) {
+      return console.error('Error removing directory:', err);
+    }
+    console.log('Directory removed successfully:', filepath);
+  });
+  await uplaodIamges.deleteOne();
   await user.deleteOne();
   // console.log("user details fetch "+user)
 
@@ -327,17 +335,6 @@ app.post("/updateuser/:id", upload.fields([{ name: 'profile' }, { name: 'signatu
       },
       { new: true }
     );
-    // req.files.forEach((file) => {
-    //   const filepath = path.join(global.uploadPath, req.params.id, );
-  
-    //   try {
-    //     // Delete the file synchronously
-    //     fs.unlinkSync(filepath);
-    //     console.log('File deleted successfully:', filepath);
-    //   } catch (err) {
-    //     console.error('Error deleting the file:', err);
-    //   }
-    // });
 
     let updateUploadImages = await uploadModel.findOne({_id : user.upload})
     const filepath = path.join(global.uploadPath, req.params.id, updateUploadImages.profile);
